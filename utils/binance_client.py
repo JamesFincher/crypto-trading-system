@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Union, Any
 from datetime import datetime, timedelta
 import logging
 from .config import get_settings
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -88,13 +89,31 @@ class BinanceClientWrapper:
             Dict: Real-time price data for the symbol
 
         Raises:
-            Exception: If the API request fails
+            HTTPException: If the API request fails
         """
         try:
-            return self.client.get_symbol_ticker(symbol=symbol)
+            # Validate symbol first
+            self.get_symbol_info(symbol)  # This will raise an error if symbol is invalid
+            
+            price_data = self.client.get_symbol_ticker(symbol=symbol)
+            if not price_data or "price" not in price_data:
+                raise ValueError("Invalid response from Binance API")
+                
+            return {
+                "symbol": price_data["symbol"],
+                "price": float(price_data["price"]),  # Ensure price is a float
+                "timestamp": price_data.get("timestamp", int(datetime.now().timestamp() * 1000))
+            }
+            
         except BinanceAPIException as e:
             logger.error(f"Error fetching real-time price: {str(e)}")
-            raise
+            raise HTTPException(status_code=400, detail=str(e))
+        except ValueError as e:
+            logger.error(f"Error processing price data: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error fetching real-time price: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
             
     def get_historical_klines(
         self,
@@ -122,6 +141,9 @@ class BinanceClientWrapper:
             start_str = int(start_time.timestamp() * 1000) if start_time else None
             end_str = int(end_time.timestamp() * 1000) if end_time else None
             
+            # Validate symbol
+            self.get_symbol_info(symbol)  # This will raise an error if symbol is invalid
+            
             klines = self.client.get_historical_klines(
                 symbol=symbol,
                 interval=interval,
@@ -129,11 +151,32 @@ class BinanceClientWrapper:
                 end_str=end_str,
                 limit=limit
             )
-            return klines
+            
+            # Ensure proper data format
+            formatted_klines = []
+            for kline in klines:
+                try:
+                    formatted_kline = [
+                        int(kline[0]),  # Open time
+                        float(kline[1]),  # Open
+                        float(kline[2]),  # High
+                        float(kline[3]),  # Low
+                        float(kline[4]),  # Close
+                        float(kline[5]),  # Volume
+                    ]
+                    formatted_klines.append(formatted_kline)
+                except (IndexError, ValueError) as e:
+                    logger.warning(f"Skipping malformed kline data: {kline}, error: {str(e)}")
+                    continue
+                    
+            return formatted_klines
             
         except BinanceAPIException as e:
             logger.error(f"Error fetching historical klines: {str(e)}")
-            raise
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error fetching historical klines: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
             
     def get_exchange_info(self) -> Dict[str, Any]:
         """Get exchange information including trading rules and symbol information"""

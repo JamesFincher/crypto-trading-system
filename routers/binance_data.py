@@ -107,9 +107,9 @@ async def get_exchange_info(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/symbol-info")
+@router.get("/symbol-info/{symbol}")
 async def get_symbol_info(
-    symbol: str = Query(..., description="Trading pair symbol (e.g., 'BTCUSDT')"),
+    symbol: str = Path(..., description="Trading pair symbol (e.g., 'BTCUSDT')"),
     client: BinanceClientWrapper = Depends(get_binance_client),
     current_user: dict = Depends(get_current_user)
 ) -> dict:
@@ -124,7 +124,7 @@ async def get_symbol_info(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/order", response_model=OrderResponse)
+@router.post("/orders", response_model=OrderResponse)
 async def create_order(
     order: OrderRequest,
     client: BinanceClientWrapper = Depends(get_binance_client),
