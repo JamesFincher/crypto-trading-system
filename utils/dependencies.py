@@ -4,14 +4,15 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
+import os
 
 from database import get_db
 from models.user import User
 from schemas.auth import TokenData
 
 # JWT configuration
-SECRET_KEY = "your-secret-key"  # Change this in production
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")  # Change this in production
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 

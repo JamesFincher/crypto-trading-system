@@ -8,9 +8,12 @@ from schemas.data_sourcing import (
 )
 from models.market_data import MarketData as MarketDataModel
 from models.trading_crew import TradingCrew
-from utils.binance_client import BinanceClient
+from utils.binance_client import BinanceClientWrapper
 from sqlalchemy import and_
 from fastapi import HTTPException
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DataSourcingService:
     """
@@ -22,12 +25,12 @@ class DataSourcingService:
     
     Attributes:
         db (Session): SQLAlchemy database session
-        binance_client (BinanceClient): Client for interacting with Binance.US API
+        binance_client (BinanceClientWrapper): Client for interacting with Binance.US API
     """
     
     def __init__(self, db: Session):
         self.db = db
-        self.binance_client = BinanceClient()
+        self.binance_client = BinanceClientWrapper()
 
     def fetch_data(self, crew_id: int, start_time: int, end_time: int, intervals: List[str], user_id: int) -> Dict:
         """
@@ -94,7 +97,7 @@ class DataSourcingService:
             for interval in intervals:
                 try:
                     # Fetch data from Binance
-                    klines = self.binance_client.get_klines(
+                    klines = self.binance_client.get_historical_klines(
                         symbol=symbol,
                         interval=interval,
                         start_time=start_dt,
@@ -146,10 +149,23 @@ class DataSourcingService:
                     
                     result[symbol][interval] = interval_data
                     
+                except BinanceAPIException as e:
+                    logger.error(f"Binance API error for {symbol} with interval {interval}: {str(e)}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Binance API error for {symbol} with interval {interval}: {str(e)}"
+                    )
+                except ValueError as e:
+                    logger.error(f"Value error for {symbol} with interval {interval}: {str(e)}")
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid data format for {symbol} with interval {interval}: {str(e)}"
+                    )
                 except Exception as e:
+                    logger.error(f"Unexpected error for {symbol} with interval {interval}: {str(e)}")
                     raise HTTPException(
                         status_code=500,
-                        detail=f"Error fetching data for {symbol} with interval {interval}: {str(e)}"
+                        detail=f"Internal server error while fetching data for {symbol} with interval {interval}"
                     )
         
         # Commit all changes to database

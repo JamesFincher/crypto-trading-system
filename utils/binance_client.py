@@ -6,39 +6,77 @@ market data, including real-time prices, historical data, order book information
 and various other market statistics.
 """
 
-from binance.spot import Spot
-from binance.error import ClientError
-from typing import Dict, List, Optional, Union
-from datetime import datetime, timedelta
+from binance.client import Client
+from binance.exceptions import BinanceAPIException
 import os
-from dotenv import load_dotenv
+from typing import Dict, List, Optional, Union, Any
+from datetime import datetime, timedelta
+import logging
+from .config import get_settings
 
-load_dotenv()
+logger = logging.getLogger(__name__)
 
-class BinanceClient:
-    """
-    A client for interacting with the Binance API.
-
-    This class provides methods to access various Binance API endpoints for market data
-    and trading information. It handles authentication and request formatting.
-
-    Attributes:
-        api_key (str): Binance API key loaded from environment variables
-        api_secret (str): Binance API secret loaded from environment variables
-        client (Spot): Binance Spot API client
-    """
-
-    def __init__(self):
-        """Initialize the Binance client with API credentials from environment variables."""
-        self.api_key = os.getenv("BINANCE_API_KEY")
-        self.api_secret = os.getenv("BINANCE_API_SECRET")
-        # Use Binance.US API endpoint
-        self.client = Spot(
+class BinanceClientWrapper:
+    """Wrapper for Binance Client with support for both mainnet and testnet"""
+    
+    # API URLs
+    MAINNET_API_URL = "https://api.binance.us"
+    MAINNET_STREAM_URL = "wss://stream.binance.us:9443"
+    
+    # Testnet base URLs
+    TESTNET_API_URL = "https://testnet.binance.vision/api"
+    TESTNET_STREAM_URL = "wss://stream.testnet.binance.vision"
+    
+    def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None, testnet: Optional[bool] = None):
+        """
+        Initialize Binance client with optional testnet support.
+        In development environment (ENVIRONMENT=development), testnet is used by default.
+        
+        Args:
+            api_key: Binance API key (optional, will use from config if not provided)
+            api_secret: Binance API secret (optional, will use from config if not provided)
+            testnet: Whether to use testnet (optional, will determine from config if not provided)
+        """
+        settings = get_settings()
+        
+        # Determine if we should use testnet
+        self.testnet = testnet if testnet is not None else settings.USE_TESTNET
+        
+        if self.testnet:
+            logger.info("Using Binance testnet environment")
+            self.api_key = api_key or settings.BINANCE_TESTNET_API_KEY
+            self.api_secret = api_secret or settings.BINANCE_TESTNET_SECRET_KEY
+            self.base_url = self.TESTNET_API_URL
+            self.stream_url = self.TESTNET_STREAM_URL
+        else:
+            logger.info("Using Binance.US mainnet environment")
+            self.api_key = api_key or settings.BINANCE_API_KEY
+            self.api_secret = api_secret or settings.BINANCE_API_SECRET
+            self.base_url = self.MAINNET_API_URL
+            self.stream_url = self.MAINNET_STREAM_URL
+        
+        if not self.api_key or not self.api_secret:
+            raise ValueError(
+                f"{'Testnet' if self.testnet else 'Mainnet'} API credentials not found. "
+                "Please check your environment variables."
+            )
+        
+        # Initialize the Binance client
+        self.client = Client(
             api_key=self.api_key,
             api_secret=self.api_secret,
-            base_url="https://api.binance.us"
+            testnet=self.testnet,
+            tld='us' if not self.testnet else None
         )
-
+        
+        # Set appropriate API URL
+        if self.testnet:
+            self.client.API_URL = self.TESTNET_API_URL
+            logger.info("Initialized Binance client in testnet mode")
+        else:
+            self.client.API_URL = self.MAINNET_API_URL
+            logger.info("Initialized Binance.US client in mainnet mode")
+            
     def get_real_time_price(self, symbol: str) -> Dict:
         """
         Get real-time price for a symbol.
@@ -53,120 +91,147 @@ class BinanceClient:
             Exception: If the API request fails
         """
         try:
-            return self.client.ticker_price(symbol)
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get price for {symbol}: {str(e)}")
-
-    def get_klines(
+            return self.client.get_symbol_ticker(symbol=symbol)
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching real-time price: {str(e)}")
+            raise
+            
+    def get_historical_klines(
         self,
         symbol: str,
         interval: str,
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
-        limit: int = 1000
-    ) -> List:
+        limit: int = 500
+    ) -> list:
         """
-        Get historical klines/candlestick data.
-
+        Get historical klines/candlestick data
+        
         Args:
-            symbol (str): Trading pair symbol (e.g., 'BTCUSDT')
-            interval (str): Kline interval (e.g., '1m', '5m', '1h')
-            start_time (Optional[datetime]): Start time for the klines (default: None)
-            end_time (Optional[datetime]): End time for the klines (default: None)
-            limit (int): Number of klines to retrieve (default: 1000, max: 1000)
-
+            symbol: Trading pair symbol (e.g. 'BTCUSDT')
+            interval: Kline interval (e.g. '1m', '5m', '1h', '1d')
+            start_time: Start time for historical data
+            end_time: End time for historical data  
+            limit: Number of klines to return (max 1000)
+        
         Returns:
-            List: List of kline data
-
-        Raises:
-            Exception: If the API request fails
+            List of kline data
         """
         try:
+            # Convert datetime to millisecond timestamps if provided
+            start_str = int(start_time.timestamp() * 1000) if start_time else None
+            end_str = int(end_time.timestamp() * 1000) if end_time else None
+            
+            klines = self.client.get_historical_klines(
+                symbol=symbol,
+                interval=interval,
+                start_str=start_str,
+                end_str=end_str,
+                limit=limit
+            )
+            return klines
+            
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching historical klines: {str(e)}")
+            raise
+            
+    def get_exchange_info(self) -> Dict[str, Any]:
+        """Get exchange information including trading rules and symbol information"""
+        try:
+            return self.client.get_exchange_info()
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching exchange info: {str(e)}")
+            raise
+            
+    def get_symbol_info(self, symbol: str) -> Dict[str, Any]:
+        """Get symbol specific trading rules and information"""
+        try:
+            exchange_info = self.get_exchange_info()
+            for sym_info in exchange_info['symbols']:
+                if sym_info['symbol'] == symbol:
+                    return sym_info
+            raise ValueError(f"Symbol {symbol} not found")
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching symbol info: {str(e)}")
+            raise
+            
+    def create_order(
+        self,
+        symbol: str,
+        side: str,
+        order_type: str,
+        quantity: float,
+        price: Optional[float] = None,
+        time_in_force: Optional[str] = 'GTC',
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Create a new order
+        
+        Args:
+            symbol: Trading pair symbol
+            side: Order side (BUY or SELL)
+            order_type: Order type (LIMIT, MARKET, etc)
+            quantity: Order quantity
+            price: Order price (required for limit orders)
+            time_in_force: Time in force (GTC, IOC, FOK)
+            **kwargs: Additional order parameters
+            
+        Returns:
+            Order response from Binance API
+        """
+        try:
+            # Get symbol info for precision requirements
+            symbol_info = self.get_symbol_info(symbol)
+            price_filter = next(filter(lambda x: x['filterType'] == 'PRICE_FILTER', symbol_info['filters']))
+            tick_size = float(price_filter['tickSize'])
+            
             params = {
-                "symbol": symbol,
-                "interval": interval,
-                "limit": limit
+                'symbol': symbol,
+                'side': side,
+                'type': order_type,
+                'quantity': quantity,
+                **kwargs
             }
-            if start_time:
-                params["startTime"] = int(start_time.timestamp() * 1000)
-            if end_time:
-                params["endTime"] = int(end_time.timestamp() * 1000)
             
-            klines = self.client.klines(**params)
+            if order_type == 'LIMIT':
+                if not price:
+                    raise ValueError("Price is required for LIMIT orders")
+                # Round price to the correct precision
+                decimal_places = len(str(tick_size).split('.')[-1].rstrip('0'))
+                params['price'] = round(float(price), decimal_places)
+                params['timeInForce'] = time_in_force
+                
+            return self.client.create_order(**params)
             
-            # Transform klines to match our model
-            transformed_klines = []
-            for kline in klines:
-                transformed_klines.append({
-                    "open_time": datetime.fromtimestamp(kline[0] / 1000),
-                    "open": float(kline[1]),
-                    "high": float(kline[2]),
-                    "low": float(kline[3]),
-                    "close": float(kline[4]),
-                    "volume": float(kline[5]),
-                    "close_time": datetime.fromtimestamp(kline[6] / 1000),
-                    "quote_volume": float(kline[7]),
-                    "trades": int(kline[8])
-                })
+        except BinanceAPIException as e:
+            logger.error(f"Error creating order: {str(e)}")
+            raise
             
-            return transformed_klines
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get klines for {symbol}: {str(e)}")
-
-    def get_exchange_info(self, symbol: Optional[str] = None) -> Dict:
+    def get_account_info(self) -> Dict[str, Any]:
+        """Get current account information"""
+        try:
+            return self.client.get_account()
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching account info: {str(e)}")
+            raise
+            
+    def get_asset_balance(self, asset: str) -> Dict[str, str]:
         """
-        Get exchange information.
-
+        Get current balance of a specific asset
+        
         Args:
-            symbol (Optional[str]): Trading pair symbol (e.g., 'BTCUSDT')
-                                If None, returns data for all symbols
-
+            asset: Asset symbol (e.g. 'BTC', 'USDT')
+            
         Returns:
-            Dict: Exchange information including trading rules and symbol details
-
-        Raises:
-            Exception: If the API request fails
+            Dict containing free and locked amounts
         """
         try:
-            params = {}
-            if symbol:
-                params["symbol"] = symbol
+            return self.client.get_asset_balance(asset=asset)
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching {asset} balance: {str(e)}")
+            raise
             
-            data = self.client.exchange_info(**params)
-            
-            # Transform to match our model
-            return {
-                "timezone": data["timezone"],
-                "server_time": datetime.fromtimestamp(data["serverTime"] / 1000),
-                "rate_limits": data["rateLimits"],
-                "symbols": data["symbols"]
-            }
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get exchange info: {str(e)}")
-
-    def get_account_info(self) -> Dict:
-        """
-        Get account information including balances.
-
-        Returns:
-            Dict: Account information including balances
-
-        Raises:
-            Exception: If the API request fails
-        """
-        try:
-            return self.client.account()
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get account info: {str(e)}")
-
     def get_orderbook(self, symbol: str, limit: Optional[int] = 100) -> Dict:
         """
         Get order book for a symbol.
@@ -182,7 +247,7 @@ class BinanceClient:
             Exception: If the API request fails
         """
         try:
-            data = self.client.depth(symbol, limit=limit)
+            data = self.client.get_order_book(symbol=symbol, limit=limit)
             
             # Transform bids and asks into the required format
             transformed_data = {
@@ -193,11 +258,10 @@ class BinanceClient:
                 "last_update_id": data["lastUpdateId"]
             }
             return transformed_data
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get orderbook for {symbol}: {str(e)}")
-
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching orderbook: {str(e)}")
+            raise
+            
     def get_recent_trades(self, symbol: str, limit: Optional[int] = 500) -> List:
         """
         Get recent trades for a symbol.
@@ -213,13 +277,12 @@ class BinanceClient:
             Exception: If the API request fails
         """
         try:
-            data = self.client.trades(symbol, limit=limit)
+            data = self.client.get_recent_trades(symbol=symbol, limit=limit)
             return [self._transform_trade(trade) for trade in data]
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get recent trades for {symbol}: {str(e)}")
-
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching recent trades: {str(e)}")
+            raise
+            
     def _transform_trade(self, data: Dict) -> Dict:
         """Transform trade data to match our model."""
         return {
@@ -263,13 +326,12 @@ class BinanceClient:
             if end_time:
                 params["endTime"] = int(end_time.timestamp() * 1000)
 
-            trades = self.client.agg_trades(**params)
+            trades = self.client.get_aggregate_trades(**params)
             return [self._transform_agg_trade(trade) for trade in trades]
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get aggregated trades for {symbol}: {str(e)}")
-
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching aggregated trades: {str(e)}")
+            raise
+            
     def _transform_agg_trade(self, data: Dict) -> Dict:
         """Transform aggregate trade data to match our model."""
         return {
@@ -294,7 +356,7 @@ class BinanceClient:
             Dict: 24-hour ticker statistics
         """
         try:
-            data = self.client.ticker_24hr(symbol)
+            data = self.client.get_ticker_24hr(symbol=symbol)
             
             # Transform response to match our model
             return {
@@ -317,11 +379,10 @@ class BinanceClient:
                 "last_trade_id": data["lastId"],
                 "trade_count": data["count"]
             }
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get 24hr ticker data: {str(e)}")
-
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching 24hr ticker data: {str(e)}")
+            raise
+            
     def get_ticker_book(self, symbol: str) -> Dict:
         """
         Get best price/quantity on the order book.
@@ -333,7 +394,7 @@ class BinanceClient:
             Dict: Best price/quantity on the order book
         """
         try:
-            data = self.client.book_ticker(symbol)
+            data = self.client.get_ticker_book(symbol=symbol)
             
             # Transform response to match our model
             return {
@@ -343,11 +404,10 @@ class BinanceClient:
                 "ask_price": data["askPrice"],
                 "ask_quantity": data["askQty"]
             }
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get book ticker: {str(e)}")
-
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching book ticker: {str(e)}")
+            raise
+            
     def get_ticker_price(self, symbol: Optional[str] = None) -> Union[Dict, List[Dict]]:
         """
         Get latest price for a symbol or all symbols.
@@ -363,12 +423,11 @@ class BinanceClient:
             Exception: If the API request fails
         """
         try:
-            return self.client.ticker_price(symbol) if symbol else self.client.ticker_price()
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get ticker price: {str(e)}")
-
+            return self.client.get_ticker_price(symbol=symbol) if symbol else self.client.get_all_tickers()
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching ticker price: {str(e)}")
+            raise
+            
     def get_historical_trades(
         self,
         symbol: str,
@@ -393,8 +452,7 @@ class BinanceClient:
             params = {"symbol": symbol, "limit": limit}
             if from_id:
                 params["fromId"] = from_id
-            return self.client.historical_trades(**params)
-        except ClientError as e:
-            if e.status_code == 451:
-                raise Exception("Access restricted. Please ensure you're using Binance.US API keys and accessing from a supported region.")
-            raise Exception(f"Failed to get historical trades for {symbol}: {str(e)}")
+            return self.client.get_historical_trades(**params)
+        except BinanceAPIException as e:
+            logger.error(f"Error fetching historical trades: {str(e)}")
+            raise

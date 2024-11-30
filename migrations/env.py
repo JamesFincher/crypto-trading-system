@@ -5,27 +5,12 @@ from sqlalchemy import pool
 
 from alembic import context
 
-import os
-import sys
-from dotenv import load_dotenv
-
-# Add the parent directory to sys.path
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-# Import your models and Base
-from database import Base
-from models import user, performance_log, paper_trade, trading_crew
-
-# Load environment variables
-load_dotenv()
+from utils.config import get_settings
+from models.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
-# Override sqlalchemy.url with environment variable if present
-sqlalchemy_url = os.getenv("DATABASE_URL", "sqlite:///./crypto_trading.db")
-config.set_main_option("sqlalchemy.url", sqlalchemy_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -36,11 +21,9 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
+# Get database URL from settings
+settings = get_settings()
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

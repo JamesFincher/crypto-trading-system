@@ -263,3 +263,72 @@ class ExchangeFilter(BaseModel):
     max_qty: Optional[float] = None
     step_size: Optional[float] = None
     min_notional: Optional[float] = None
+
+class OrderRequest(BaseModel):
+    """Request model for creating orders.
+
+    This model defines the required and optional parameters for creating
+    different types of orders (MARKET, LIMIT, etc.).
+
+    Attributes:
+        symbol (str): Trading pair symbol (e.g., 'BTCUSDT')
+        side (str): Order side ('BUY' or 'SELL')
+        type (str): Order type ('MARKET', 'LIMIT', etc.)
+        quantity (float): Order quantity
+        price (Optional[float]): Order price (required for LIMIT orders)
+        time_in_force (Optional[str]): Time in force ('GTC', 'IOC', 'FOK')
+        stop_price (Optional[float]): Stop price for stop orders
+        iceberg_qty (Optional[float]): Iceberg quantity for iceberg orders
+    """
+    symbol: str = Field(..., description="Trading pair symbol (e.g., 'BTCUSDT')")
+    side: str = Field(..., description="Order side", pattern="^(BUY|SELL)$")
+    type: str = Field(..., description="Order type", pattern="^(MARKET|LIMIT|STOP_LOSS|STOP_LOSS_LIMIT|TAKE_PROFIT|TAKE_PROFIT_LIMIT|LIMIT_MAKER)$")
+    quantity: float = Field(gt=0, description="Order quantity (must be > 0)")
+    price: Optional[float] = Field(None, gt=0, description="Order price (required for LIMIT orders)")
+    time_in_force: Optional[str] = Field(None, pattern="^(GTC|IOC|FOK)$", description="Time in force")
+    stop_price: Optional[float] = Field(None, gt=0, description="Stop price for stop orders")
+    iceberg_qty: Optional[float] = Field(None, gt=0, description="Iceberg quantity for iceberg orders")
+
+class OrderResponse(BaseModel):
+    """Response model for order creation.
+
+    This model represents the response received after creating an order.
+
+    Attributes:
+        symbol (str): Trading pair symbol
+        order_id (int): Order ID assigned by Binance
+        client_order_id (str): Client-side order ID
+        transact_time (datetime): Time the order was processed
+        price (float): Order price
+        orig_qty (float): Original quantity
+        executed_qty (float): Executed quantity
+        status (str): Order status
+        type (str): Order type
+        side (str): Order side
+    """
+    symbol: str
+    order_id: int = Field(..., description="Order ID assigned by Binance")
+    client_order_id: str = Field(..., description="Client-side order ID")
+    transact_time: datetime = Field(..., description="Time the order was processed")
+    price: float = Field(..., description="Order price")
+    orig_qty: float = Field(..., description="Original quantity")
+    executed_qty: float = Field(..., description="Executed quantity")
+    status: str = Field(..., description="Order status")
+    type: str = Field(..., description="Order type")
+    side: str = Field(..., description="Order side")
+
+class ConnectionStatus(BaseModel):
+    """Response model for connection test endpoint.
+
+    This model represents the response from the connection test endpoint.
+
+    Attributes:
+        status (str): Connection status ('connected' or 'error')
+        environment (str): Current environment ('testnet' or 'mainnet')
+        server_time (str): Server time from Binance
+        timezone (str): Server timezone
+    """
+    status: str = Field(..., pattern="^(connected|error)$")
+    environment: str = Field(..., pattern="^(testnet|mainnet)$")
+    server_time: str
+    timezone: str

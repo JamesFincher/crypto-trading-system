@@ -27,6 +27,8 @@ env/
 
 # Environment Variables
 .env
+.env.*
+!.env.template
 
 # IDE
 .idea/

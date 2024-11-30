@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -20,25 +20,26 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Set working directory
-WORKDIR $PYSETUP_PATH
+WORKDIR /opt/pysetup
 
 # Copy poetry files
 COPY poetry.lock pyproject.toml ./
 
 # Install dependencies
-RUN poetry install --no-root --no-dev
+RUN poetry install --only main
 
 # Copy project files
 COPY . .
 
 # Install project
-RUN poetry install --no-dev
+RUN poetry install --only main
 
 # Expose port
 EXPOSE 8000

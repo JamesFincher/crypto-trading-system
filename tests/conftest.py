@@ -53,13 +53,14 @@ def test_user(client):
 
 @pytest.fixture(scope="function")
 def auth_headers(client, test_user):
+    """Generate authentication headers with valid JWT token"""
     login_data = {
         "username": "testuser",
         "password": "testpassword123"
     }
     response = client.post(
         "/auth/login",
-        data=urllib.parse.urlencode(login_data),
+        data=login_data,
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 200
