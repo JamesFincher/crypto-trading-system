@@ -26,17 +26,17 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Automated Crypto Day Trading API",
-    version="1.2.0",
-    description="API for managing the Automated Crypto Day Trading system using Binance for live data, historical data, paper trading, and trading operations."
+    description="API for managing automated crypto trading operations",
+    version="1.0.0"
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(","),
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:8000").split(","),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Add trusted host middleware
@@ -47,12 +47,12 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-app.include_router(binance_data.router, prefix="/binance", tags=["Binance Data"])
 app.include_router(trading.router, prefix="/trading", tags=["Trading"])
-app.include_router(paper_trading.router, prefix="/paper-trading", tags=["Paper Trading"])
+app.include_router(paper_trading.router, prefix="/trading/paper", tags=["Paper Trading"])
 app.include_router(data_sourcing.router, prefix="/data-sourcing", tags=["Data Sourcing"])
 app.include_router(logs.router, prefix="/logs", tags=["Performance Logs"])
 app.include_router(management.router, prefix="/management", tags=["Management"])
+app.include_router(binance_data.router, prefix="/binance", tags=["Binance Data"])
 
 @app.get("/")
 async def root():

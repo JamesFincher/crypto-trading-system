@@ -1,63 +1,37 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-from datetime import datetime
-
+from typing import Dict, List
 from database import get_db
-from schemas.data_sourcing import DataSourceRequest, DataSourceResponse
+from services.data_sourcing_service import DataSourcingService
+from schemas.data_sourcing import DataFetchRequest, DataFetchResponse
+from utils.auth_utils import get_current_user
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/data-sourcing",
+    tags=["Data Sourcing"]
+)
 
-@router.post("/fetch", response_model=DataSourceResponse)
+@router.post("/fetch", response_model=DataFetchResponse)
 async def fetch_data(
-    request: DataSourceRequest,
-    db: Session = Depends(get_db)
-):
+    request: DataFetchRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+) -> Dict:
     """
-    Fetch and preprocess data for a trading crew.
-
-    Parameters:
-    - request: Data source request containing source type and parameters
-    - db: Database session
-
+    Fetch and store market data for a trading crew.
+    
+    Args:
+        request: Data fetch request containing crew_id, time range, and intervals
+        db: Database session
+        current_user: Currently authenticated user
+        
     Returns:
-    - DataSourceResponse: Processed data ready for trading
+        Dictionary containing the fetched data for each symbol and interval
     """
-    pass  # TODO: Implement data fetching logic
-
-@router.get("/available-sources", response_model=dict)
-async def get_available_sources():
-    """
-    Get list of available data sources.
-
-    Returns:
-    - dict: List of available data sources and their descriptions
-    """
-    return {
-        "sources": [
-            "binance_spot",
-            "binance_futures",
-            "historical_data"
-        ]
-    }
-
-@router.post("/backtest-data", response_model=dict)
-async def prepare_backtest_data(
-    crew_id: int,
-    start_date: datetime,
-    end_date: datetime,
-    db: Session = Depends(get_db)
-):
-    """
-    Prepare data for backtesting.
-
-    Parameters:
-    - crew_id: Trading crew ID
-    - start_date: Start date for backtest data
-    - end_date: End date for backtest data
-    - db: Database session
-
-    Returns:
-    - dict: Prepared backtest data and metadata
-    """
-    pass  # TODO: Implement backtest data preparation logic
+    service = DataSourcingService(db)
+    return await service.fetch_data(
+        crew_id=request.crew_id,
+        start_time=request.start_time,
+        end_time=request.end_time,
+        intervals=request.intervals
+    )
