@@ -1,0 +1,66 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="600" fill="#f8f9fa"/>
+    
+    <!-- Layers -->
+    <g transform="translate(100,50)">
+        <!-- Layer Headers -->
+        <text x="0" y="30" font-size="16" fill="#2c3e50" font-weight="bold">Frontend Layer</text>
+        <text x="0" y="150" font-size="16" fill="#2c3e50" font-weight="bold">Backend Layer</text>
+        <text x="0" y="270" font-size="16" fill="#2c3e50" font-weight="bold">AI Layer</text>
+        <text x="0" y="390" font-size="16" fill="#2c3e50" font-weight="bold">Trading Layer</text>
+        <text x="0" y="510" font-size="16" fill="#2c3e50" font-weight="bold">Data Layer</text>
+
+        <!-- Components -->
+        <!-- Frontend -->
+        <rect x="150" y="10" width="120" height="60" rx="5" fill="#3498db" opacity="0.8"/>
+        <text x="210" y="45" font-size="14" fill="white" text-anchor="middle">Dashboard</text>
+
+        <!-- Backend -->
+        <rect x="150" y="130" width="120" height="60" rx="5" fill="#2ecc71" opacity="0.8"/>
+        <text x="210" y="165" font-size="14" fill="white" text-anchor="middle">FastAPI Backend</text>
+
+        <!-- AI Layer -->
+        <rect x="150" y="250" width="120" height="60" rx="5" fill="#9b59b6" opacity="0.8"/>
+        <text x="210" y="285" font-size="14" fill="white" text-anchor="middle">Management LLM</text>
+        
+        <rect x="300" y="250" width="120" height="60" rx="5" fill="#9b59b6" opacity="0.8"/>
+        <text x="360" y="285" font-size="14" fill="white" text-anchor="middle">Strategy LLM</text>
+
+        <!-- Trading Layer -->
+        <rect x="150" y="370" width="120" height="60" rx="5" fill="#e67e22" opacity="0.8"/>
+        <text x="210" y="405" font-size="14" fill="white" text-anchor="middle">Trading Crew 1</text>
+        
+        <rect x="300" y="370" width="120" height="60" rx="5" fill="#e67e22" opacity="0.8"/>
+        <text x="360" y="405" font-size="14" fill="white" text-anchor="middle">Trading Crew 2</text>
+        
+        <rect x="450" y="370" width="120" height="60" rx="5" fill="#e67e22" opacity="0.8"/>
+        <text x="510" y="405" font-size="14" fill="white" text-anchor="middle">Trading Crew N</text>
+
+        <!-- Data Layer -->
+        <rect x="150" y="490" width="120" height="60" rx="5" fill="#34495e" opacity="0.8"/>
+        <text x="210" y="525" font-size="14" fill="white" text-anchor="middle">SQLite DB</text>
+        
+        <rect x="300" y="490" width="120" height="60" rx="5" fill="#34495e" opacity="0.8"/>
+        <text x="360" y="525" font-size="14" fill="white" text-anchor="middle">Binance API</text>
+
+        <!-- Connections -->
+        <path d="M210 70 L210 130" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M210 190 L210 250" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M210 310 L210 370" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M210 430 L210 490" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        
+        <!-- Horizontal connections -->
+        <path d="M270 285 L300 285" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M270 405 L300 405" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M420 405 L450 405" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M270 525 L300 525" stroke="#95a5a6" stroke-width="2" marker-end="url(#arrowhead)"/>
+    </g>
+
+    <!-- Arrow Marker -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#95a5a6"/>
+        </marker>
+    </defs>
+</svg>

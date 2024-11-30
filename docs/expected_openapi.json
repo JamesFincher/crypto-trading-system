@@ -1,0 +1,987 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Automated Crypto Day Trading API",
+      "version": "1.2.0",
+      "description": "API for managing the Automated Crypto Day Trading system using Binance for live data, historical data, paper trading, and trading operations.",
+      "contact": {
+        "name": "Developer Support",
+        "email": "support@tradingai.com"
+      }
+    },
+    "servers": [
+      {
+        "url": "http://localhost:8000",
+        "description": "Local Development Server"
+      },
+      {
+        "url": "https://api.tradingai.com",
+        "description": "Production Server"
+      }
+    ],
+    "tags": [
+      {
+        "name": "Authentication",
+        "description": "User authentication and authorization"
+      },
+      {
+        "name": "Binance Data",
+        "description": "Endpoints for fetching market data from Binance"
+      },
+      {
+        "name": "Trading",
+        "description": "Trading operations and crew management"
+      },
+      {
+        "name": "Paper Trading",
+        "description": "Endpoints for paper trading (simulated trading)"
+      },
+      {
+        "name": "Data Sourcing",
+        "description": "Historical and real-time data sourcing for trading crews"
+      },
+      {
+        "name": "Performance Logs",
+        "description": "Access to performance logs and metrics"
+      },
+      {
+        "name": "Management",
+        "description": "Management LLM operations and optimizations"
+      }
+    ],
+    "paths": {
+      "/auth/login": {
+        "post": {
+          "tags": ["Authentication"],
+          "summary": "Authenticate user and obtain an access token",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/x-www-form-urlencoded": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successful authentication",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/LoginResponse"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Invalid credentials"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/binance/market-data/real-time": {
+        "get": {
+          "tags": ["Binance Data"],
+          "summary": "Fetch real-time market data for a given symbol",
+          "security": [{"bearerAuth": []}],
+          "parameters": [
+            {
+              "name": "symbol",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Trading pair symbol (e.g., BTCUSDT)"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful data retrieval",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/RealTimeMarketData"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad request parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Invalid symbol format"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Symbol not found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Symbol BTCUSDT not found"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/binance/market-data/historical": {
+        "get": {
+          "tags": ["Binance Data"],
+          "summary": "Fetch historical market data for a given symbol and time range",
+          "security": [{"bearerAuth": []}],
+          "parameters": [
+            {
+              "name": "symbol",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Trading pair symbol (e.g., BTCUSDT)"
+            },
+            {
+              "name": "interval",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Data interval (e.g., 1m, 5m, 1h)"
+            },
+            {
+              "name": "start_time",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "description": "Start time in milliseconds since epoch"
+            },
+            {
+              "name": "end_time",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "description": "End time in milliseconds since epoch"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful data retrieval",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/HistoricalMarketData"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad request parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Start time must be less than end time"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Symbol not found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Symbol BTCUSDT not found"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/trading/execute": {
+        "post": {
+          "tags": ["Trading"],
+          "summary": "Execute a trade based on the specified parameters",
+          "security": [{"bearerAuth": []}],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Trade executed successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/TradeResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid trade parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Insufficient balance"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Failed to execute trade due to server error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/trading/crews": {
+        "get": {
+          "tags": ["Trading"],
+          "summary": "Retrieve a list of all trading crews",
+          "security": [{"bearerAuth": []}],
+          "responses": {
+            "200": {
+              "description": "List of trading crews",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TradingCrew"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "tags": ["Trading"],
+          "summary": "Create a new trading crew with a specified strategy",
+          "security": [{"bearerAuth": []}],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTradingCrewRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Trading crew created successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/TradingCrew"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input data",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Strategy code file not found"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/paper-trading/execute": {
+        "post": {
+          "tags": ["Paper Trading"],
+          "summary": "Execute a paper trade (simulated trade) based on the specified parameters",
+          "security": [{"bearerAuth": []}],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperTradeRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Paper trade executed successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/PaperTradeResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid paper trade parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Invalid symbol or quantity"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/paper-trading/trades": {
+        "get": {
+          "tags": ["Paper Trading"],
+          "summary": "Retrieve a list of all paper trades",
+          "security": [{"bearerAuth": []}],
+          "responses": {
+            "200": {
+              "description": "List of paper trades",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PaperTrade"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/data-sourcing/fetch": {
+        "post": {
+          "tags": ["Data Sourcing"],
+          "summary": "Fetch and preprocess data for a trading crew",
+          "security": [{"bearerAuth": []}],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataSourcingRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Data fetched and processed successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/DataSourcingResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid request parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Invalid symbols or intervals"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/logs/performance": {
+        "get": {
+          "tags": ["Performance Logs"],
+          "summary": "Retrieve performance logs for analysis",
+          "security": [{"bearerAuth": []}],
+          "parameters": [
+            {
+              "name": "crew_id",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Filter logs by trading crew ID"
+            },
+            {
+              "name": "start_time",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "description": "Start time for the logs"
+            },
+            {
+              "name": "end_time",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "description": "End time for the logs"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Performance logs retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/PerformanceLogs"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid query parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Invalid date format for start_time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/management/optimize": {
+        "post": {
+          "tags": ["Management"],
+          "summary": "Optimize trading strategies based on performance data",
+          "security": [{"bearerAuth": []}],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationRequest"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Strategies optimized successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/OptimizationResponse"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid optimization parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "Crew ID not found"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Optimization failed",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ErrorResponse"
+                  },
+                  "example": {
+                    "detail": "LLM service unavailable"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "LoginRequest": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string"
+            },
+            "password": {
+              "type": "string",
+              "format": "password"
+            },
+            "grant_type": {
+              "type": "string",
+              "default": "password"
+            }
+          },
+          "required": ["username", "password"]
+        },
+        "LoginResponse": {
+          "type": "object",
+          "properties": {
+            "access_token": {
+              "type": "string"
+            },
+            "token_type": {
+              "type": "string",
+              "enum": ["bearer"]
+            }
+          }
+        },
+        "ErrorResponse": {
+          "type": "object",
+          "properties": {
+            "detail": {
+              "type": "string"
+            }
+          }
+        },
+        "RealTimeMarketData": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string"
+            },
+            "price": {
+              "type": "number",
+              "format": "float"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "CandlestickData": {
+          "type": "object",
+          "properties": {
+            "open_time": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "open": {
+              "type": "number",
+              "format": "float"
+            },
+            "high": {
+              "type": "number",
+              "format": "float"
+            },
+            "low": {
+              "type": "number",
+              "format": "float"
+            },
+            "close": {
+              "type": "number",
+              "format": "float"
+            },
+            "volume": {
+              "type": "number",
+              "format": "float"
+            },
+            "close_time": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "HistoricalMarketData": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string"
+            },
+            "interval": {
+              "type": "string"
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CandlestickData"
+              }
+            }
+          }
+        },
+        "TradeRequest": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string"
+            },
+            "quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "side": {
+              "type": "string",
+              "enum": ["BUY", "SELL"]
+            },
+            "order_type": {
+              "type": "string",
+              "enum": ["MARKET", "LIMIT"]
+            },
+            "price": {
+              "type": "number",
+              "format": "float",
+              "nullable": true
+            }
+          },
+          "required": ["symbol", "quantity", "side", "order_type"]
+        },
+        "TradeFill": {
+          "type": "object",
+          "properties": {
+            "price": {
+              "type": "number",
+              "format": "float"
+            },
+            "quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "commission": {
+              "type": "number",
+              "format": "float"
+            },
+            "commission_asset": {
+              "type": "string"
+            }
+          }
+        },
+        "TradeResponse": {
+          "type": "object",
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "executed_quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "cummulative_quote_quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "fills": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/TradeFill"
+              }
+            }
+          }
+        },
+        "TradingCrew": {
+          "type": "object",
+          "properties": {
+            "crew_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "strategy": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["ACTIVE", "INACTIVE"]
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "CreateTradingCrewRequest": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "strategy_code": {
+              "type": "string"
+            }
+          },
+          "required": ["name", "strategy_code"]
+        },
+        "PaperTradeRequest": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string"
+            },
+            "quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "side": {
+              "type": "string",
+              "enum": ["BUY", "SELL"]
+            },
+            "price": {
+              "type": "number",
+              "format": "float",
+              "nullable": true
+            },
+            "crew_id": {
+              "type": "string"
+            }
+          },
+          "required": ["symbol", "quantity", "side", "crew_id"]
+        },
+        "PaperTradeResponse": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "side": {
+              "type": "string",
+              "enum": ["BUY", "SELL"]
+            },
+            "quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "price": {
+              "type": "number",
+              "format": "float"
+            },
+            "crew_id": {
+              "type": "string"
+            }
+          }
+        },
+        "PaperTrade": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "side": {
+              "type": "string",
+              "enum": ["BUY", "SELL"]
+            },
+            "quantity": {
+              "type": "number",
+              "format": "float"
+            },
+            "price": {
+              "type": "number",
+              "format": "float"
+            },
+            "crew_id": {
+              "type": "string"
+            }
+          }
+        },
+        "DataSourcingRequest": {
+          "type": "object",
+          "properties": {
+            "crew_id": {
+              "type": "string"
+            },
+            "symbols": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "intervals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "start_time": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "end_time": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "required": ["crew_id", "symbols", "intervals", "start_time", "end_time"]
+        },
+        "DataSourcingResponse": {
+          "type": "object",
+          "properties": {
+            "crew_id": {
+              "type": "string"
+            },
+            "data_fetched": {
+              "type": "boolean"
+            }
+          }
+        },
+        "PerformanceLogEntry": {
+          "type": "object",
+          "properties": {
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "crew_id": {
+              "type": "string"
+            },
+            "metric": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        },
+        "PerformanceLogs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/PerformanceLogEntry"
+          }
+        },
+        "OptimizationRequest": {
+          "type": "object",
+          "properties": {
+            "crew_id": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          },
+          "required": ["crew_id", "parameters"]
+        },
+        "OptimizationResponse": {
+          "type": "object",
+          "properties": {
+            "crew_id": {
+              "type": "string"
+            },
+            "optimization_successful": {
+              "type": "boolean"
+            },
+            "new_parameters": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "float"
+              }
+            }
+          }
+        }
+      },
+      "securitySchemes": {
+        "bearerAuth": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
+        }
+      }
+    },
+    "security": [
+      {
+        "bearerAuth": []
+      }
+    ]
+  }

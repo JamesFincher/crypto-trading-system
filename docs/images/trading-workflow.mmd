@@ -1,0 +1,36 @@
+flowchart TB
+    subgraph Init["Initialization Phase"]
+        A[Start] --> B[Load Configuration]
+        B --> C[Initialize Base Crew]
+        C --> D[Connect to Binance API]
+    end
+
+    subgraph Analysis["Analysis Phase"]
+        E[Fetch Market Data] --> F[Analyze Trends]
+        F --> G[Generate Signals]
+        G --> H[Validate Signals]
+    end
+
+    subgraph Trading["Trading Phase"]
+        I[Execute Trade] --> J[Monitor Position]
+        J --> K{Check Exit Conditions}
+        K -->|Yes| L[Close Position]
+        K -->|No| J
+        L --> M[Log Results]
+    end
+
+    subgraph Optimization["Optimization Phase"]
+        N[Analyze Performance] --> O[Update Parameters]
+        O --> P[Adjust Strategy]
+        P --> Q[Save Changes]
+    end
+
+    Init --> Analysis
+    Analysis --> Trading
+    Trading --> Optimization
+    Optimization -.->|Feedback Loop| Analysis
+
+    style Init fill:#e1f5fe,stroke:#01579b
+    style Analysis fill:#e8f5e9,stroke:#1b5e20
+    style Trading fill:#fff3e0,stroke:#e65100
+    style Optimization fill:#f3e5f5,stroke:#4a148c

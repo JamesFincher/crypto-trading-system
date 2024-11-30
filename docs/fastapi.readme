@@ -1,0 +1,634 @@
+Automated Crypto Day Trading System - FastAPI Project Documentation (Updated with Paper Trading Features)
+
+Table of Contents
+
+	1.	Introduction
+	2.	Project Structure
+	3.	Dependencies and Setup
+	4.	Configuration
+	5.	Application Modules
+	•	5.1 Main Application (main.py)
+	•	5.2 Routers
+	•	5.2.1 Authentication Router (routers/auth.py)
+	•	5.2.2 Binance Data Router (routers/binance_data.py)
+	•	5.2.3 Trading Router (routers/trading.py)
+	•	5.2.4 Paper Trading Router (routers/paper_trading.py)
+	•	5.2.5 Data Sourcing Router (routers/data_sourcing.py)
+	•	5.2.6 Performance Logs Router (routers/logs.py)
+	•	5.2.7 Management Router (routers/management.py)
+	•	5.3 Models (models/)
+	•	5.3.1 User Model (models/user.py)
+	•	5.3.2 TradingCrew Model (models/trading_crew.py)
+	•	5.3.3 PaperTrade Model (models/paper_trade.py)
+	•	5.3.4 PerformanceLog Model (models/performance_log.py)
+	•	5.4 Schemas (schemas/)
+	•	5.4.1 Authentication Schemas (schemas/auth.py)
+	•	5.4.2 Binance Data Schemas (schemas/binance_data.py)
+	•	5.4.3 Trading Schemas (schemas/trading.py)
+	•	5.4.4 Paper Trading Schemas (schemas/paper_trading.py)
+	•	5.4.5 Data Sourcing Schemas (schemas/data_sourcing.py)
+	•	5.4.6 Performance Logs Schemas (schemas/logs.py)
+	•	5.4.7 Management Schemas (schemas/management.py)
+	•	5.5 Services (services/)
+	•	5.6 Utilities (utils/)
+	•	5.7 Database (database.py)
+	6.	OpenAPI Schema (openapi.json)
+	7.	Conclusion
+
+1. Introduction
+
+This document provides a comprehensive overview of the FastAPI project for the Automated Crypto Day Trading System, updated to incorporate paper trading features. It includes detailed descriptions of all modules, routers, models, schemas, services, and utilities, along with their docstrings. The OpenAPI schema (openapi.json) is also included for API documentation and validation.
+
+The project leverages FastAPI, Pydantic, SQLAlchemy, and other modern Python libraries to create a robust, scalable, and efficient API for managing automated crypto trading operations using Binance, with an emphasis on modularity and support for paper trading (simulated trading) to test strategies before live deployment.
+
+2. Project Structure
+
+project/
+├── main.py
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── .env
+├── database.py
+├── models/
+│   ├── __init__.py
+│   ├── user.py
+│   ├── trading_crew.py
+│   ├── paper_trade.py
+│   └── performance_log.py
+├── routers/
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── binance_data.py
+│   ├── trading.py
+│   ├── paper_trading.py
+│   ├── data_sourcing.py
+│   ├── logs.py
+│   └── management.py
+├── schemas/
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── binance_data.py
+│   ├── trading.py
+│   ├── paper_trading.py
+│   ├── data_sourcing.py
+│   ├── logs.py
+│   └── management.py
+├── services/
+│   ├── __init__.py
+│   ├── trading_crew_service.py
+│   ├── paper_trading_service.py
+│   ├── data_sourcing_service.py
+│   ├── performance_logging_service.py
+│   └── management_service.py
+├── utils/
+│   ├── __init__.py
+│   ├── binance_client.py
+│   ├── auth_utils.py
+│   └── dependencies.py
+├── strategies/
+│   ├── __init__.py
+│   └── example_strategy.py
+└── tests/
+    ├── __init__.py
+    └── test_main.py
+
+3. Dependencies and Setup
+
+Requirements
+
+	•	Python 3.8+
+	•	FastAPI
+	•	Uvicorn
+	•	Pydantic
+	•	SQLAlchemy
+	•	python-binance (Binance API client)
+	•	Passlib (for password hashing)
+	•	PyJWT (for JWT token handling)
+	•	python-dotenv (for environment variables)
+	•	python-multipart (for handling form data)
+	•	jose (for JWT encoding and decoding)
+	•	numpy and pandas (for data manipulation)
+	•	pytest (for testing)
+
+Installation
+
+	1.	Clone the repository:
+
+git clone https://github.com/yourusername/crypto-trading-api.git
+cd crypto-trading-api
+
+
+	2.	Create a virtual environment:
+
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+
+
+	3.	Install the dependencies:
+
+pip install -r requirements.txt
+
+
+	4.	Create a .env file in the root directory and add the necessary environment variables:
+
+DATABASE_URL=sqlite:///./database.db
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+BINANCE_API_KEY=your_binance_api_key
+BINANCE_API_SECRET=your_binance_api_secret
+
+
+	5.	Run the application:
+
+uvicorn main:app --reload
+
+4. Configuration
+
+Environment Variables
+
+	•	DATABASE_URL: The database connection URL.
+	•	SECRET_KEY: A secret key for JWT token encoding.
+	•	ALGORITHM: The algorithm used for JWT tokens (e.g., HS256).
+	•	ACCESS_TOKEN_EXPIRE_MINUTES: The token expiration time.
+	•	BINANCE_API_KEY: Your Binance API key.
+	•	BINANCE_API_SECRET: Your Binance API secret.
+
+5. Application Modules
+
+5.1 Main Application (main.py)
+
+from fastapi import FastAPI
+from routers import auth, binance_data, trading, paper_trading, data_sourcing, logs, management
+from database import engine, Base
+
+app = FastAPI(
+    title="Automated Crypto Day Trading API",
+    description="API for managing the Automated Crypto Day Trading system using Binance for live data, historical data, paper trading, and trading operations.",
+    version="1.2.0",
+    contact={
+        "name": "Developer Support",
+        "email": "support@tradingai.com",
+    },
+)
+
+Base.metadata.create_all(bind=engine)
+
+# Include Routers
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(binance_data.router, prefix="/binance", tags=["Binance Data"])
+app.include_router(trading.router, prefix="/trading", tags=["Trading"])
+app.include_router(paper_trading.router, prefix="/paper-trading", tags=["Paper Trading"])
+app.include_router(data_sourcing.router, prefix="/data-sourcing", tags=["Data Sourcing"])
+app.include_router(logs.router, prefix="/logs", tags=["Performance Logs"])
+app.include_router(management.router, prefix="/management", tags=["Management"])
+
+Docstring:
+
+"""
+Main application entry point for the Automated Crypto Day Trading API.
+Includes all routers and sets up the FastAPI application.
+"""
+
+5.2 Routers
+
+5.2.1 Authentication Router (routers/auth.py)
+
+(Unchanged from previous version)
+
+5.2.2 Binance Data Router (routers/binance_data.py)
+
+(Unchanged from previous version)
+
+5.2.3 Trading Router (routers/trading.py)
+
+(Unchanged from previous version)
+
+5.2.4 Paper Trading Router (routers/paper_trading.py)
+
+from fastapi import APIRouter, Depends, HTTPException
+from schemas.paper_trading import PaperTradeRequest, PaperTradeResponse, PaperTrade
+from services.paper_trading_service import PaperTradingService
+from database import get_db
+from sqlalchemy.orm import Session
+from utils.dependencies import get_current_user
+
+router = APIRouter()
+paper_trading_service = PaperTradingService()
+
+@router.post("/execute", response_model=PaperTradeResponse)
+def execute_paper_trade(request: PaperTradeRequest, current_user=Depends(get_current_user)):
+    """
+    Execute a paper trade (simulated trade) based on the specified parameters.
+
+    Args:
+        request (PaperTradeRequest): Paper trade details including symbol, quantity, side, etc.
+        current_user: Current authenticated user.
+
+    Returns:
+        PaperTradeResponse: Details of the simulated trade.
+
+    Raises:
+        HTTPException: If paper trade execution fails.
+    """
+    try:
+        trade_result = paper_trading_service.execute_trade(request)
+        return trade_result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/trades", response_model=list[PaperTrade])
+def list_paper_trades(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """
+    Retrieve a list of all paper trades.
+
+    Args:
+        db (Session): Database session.
+        current_user: Current authenticated user.
+
+    Returns:
+        List[PaperTrade]: List of paper trades.
+    """
+    trades = paper_trading_service.get_all_trades(db)
+    return trades
+
+5.2.5 Data Sourcing Router (routers/data_sourcing.py)
+
+(Unchanged from previous version)
+
+5.2.6 Performance Logs Router (routers/logs.py)
+
+(Unchanged from previous version)
+
+5.2.7 Management Router (routers/management.py)
+
+(Unchanged from previous version)
+
+5.3 Models (models/)
+
+5.3.1 User Model (models/user.py)
+
+from sqlalchemy import Column, String
+from database import Base
+
+class User(Base):
+    """
+    User model for authentication.
+
+    Attributes:
+        username (str): The username of the user.
+        hashed_password (str): The hashed password.
+    """
+    __tablename__ = 'users'
+    username = Column(String, primary_key=True, index=True)
+    hashed_password = Column(String)
+
+5.3.2 TradingCrew Model (models/trading_crew.py)
+
+from sqlalchemy import Column, String, DateTime
+from database import Base
+from datetime import datetime
+
+class TradingCrew(Base):
+    """
+    Trading crew model representing a group executing a trading strategy.
+
+    Attributes:
+        crew_id (str): Unique identifier for the crew.
+        name (str): Name of the crew.
+        strategy (str): Strategy code file name.
+        status (str): Status of the crew (ACTIVE/INACTIVE).
+        created_at (datetime): Creation timestamp.
+    """
+    __tablename__ = 'trading_crews'
+    crew_id = Column(String, primary_key=True, index=True)
+    name = Column(String, index=True)
+    strategy = Column(String)
+    status = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+5.3.3 PaperTrade Model (models/paper_trade.py)
+
+from sqlalchemy import Column, String, Float, DateTime, Integer
+from database import Base
+from datetime import datetime
+
+class PaperTrade(Base):
+    """
+    Paper trade model for simulated trading.
+
+    Attributes:
+        id (int): Primary key.
+        timestamp (datetime): Time of the trade.
+        symbol (str): Trading pair symbol.
+        side (str): BUY or SELL.
+        quantity (float): Quantity traded.
+        price (float): Price at which the trade was executed.
+        crew_id (str): Associated trading crew ID.
+    """
+    __tablename__ = 'paper_trades'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    symbol = Column(String)
+    side = Column(String)
+    quantity = Column(Float)
+    price = Column(Float)
+    crew_id = Column(String, index=True)
+
+5.3.4 PerformanceLog Model (models/performance_log.py)
+
+(Unchanged from previous version)
+
+5.4 Schemas (schemas/)
+
+5.4.1 Authentication Schemas (schemas/auth.py)
+
+(Unchanged from previous version)
+
+5.4.2 Binance Data Schemas (schemas/binance_data.py)
+
+(Unchanged from previous version)
+
+5.4.3 Trading Schemas (schemas/trading.py)
+
+(Unchanged from previous version)
+
+5.4.4 Paper Trading Schemas (schemas/paper_trading.py)
+
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+
+class PaperTradeRequest(BaseModel):
+    """
+    Schema for paper trade request.
+
+    Attributes:
+        symbol (str): Trading pair symbol.
+        quantity (float): Quantity to trade.
+        side (str): BUY or SELL.
+        price (float, optional): Simulated execution price.
+        crew_id (str): Associated trading crew ID.
+    """
+    symbol: str
+    quantity: float
+    side: str  # BUY or SELL
+    price: Optional[float]
+    crew_id: str
+
+class PaperTradeResponse(BaseModel):
+    """
+    Schema for paper trade response.
+
+    Attributes:
+        id (int): Trade ID.
+        timestamp (datetime): Time of the trade.
+        symbol (str): Trading pair symbol.
+        side (str): BUY or SELL.
+        quantity (float): Quantity traded.
+        price (float): Price at which the trade was executed.
+        crew_id (str): Associated trading crew ID.
+    """
+    id: int
+    timestamp: datetime
+    symbol: str
+    side: str
+    quantity: float
+    price: float
+    crew_id: str
+
+class PaperTrade(BaseModel):
+    """
+    Schema for paper trade record.
+
+    Attributes:
+        id (int): Trade ID.
+        timestamp (datetime): Time of the trade.
+        symbol (str): Trading pair symbol.
+        side (str): BUY or SELL.
+        quantity (float): Quantity traded.
+        price (float): Price at which the trade was executed.
+        crew_id (str): Associated trading crew ID.
+    """
+    id: int
+    timestamp: datetime
+    symbol: str
+    side: str
+    quantity: float
+    price: float
+    crew_id: str
+
+5.4.5 Data Sourcing Schemas (schemas/data_sourcing.py)
+
+(Unchanged from previous version)
+
+5.4.6 Performance Logs Schemas (schemas/logs.py)
+
+(Unchanged from previous version)
+
+5.4.7 Management Schemas (schemas/management.py)
+
+(Unchanged from previous version)
+
+5.5 Services (services/)
+
+5.5.1 Trading Crew Service (services/trading_crew_service.py)
+
+(Unchanged from previous version)
+
+5.5.2 Paper Trading Service (services/paper_trading_service.py)
+
+from models.paper_trade import PaperTrade as PaperTradeModel
+from schemas.paper_trading import PaperTradeRequest, PaperTradeResponse
+from database import SessionLocal
+from datetime import datetime
+
+class PaperTradingService:
+    """
+    Service class for managing paper trades.
+    """
+
+    def execute_trade(self, request: PaperTradeRequest) -> PaperTradeResponse:
+        """
+        Simulate the execution of a trade.
+
+        Args:
+            request (PaperTradeRequest): Paper trade request data.
+
+        Returns:
+            PaperTradeResponse: Simulated trade execution result.
+        """
+        db = SessionLocal()
+        # Simulate getting the current market price if price not provided
+        if request.price is None:
+            # For simplicity, assume a fixed price or fetch from Binance
+            request.price = self.get_market_price(request.symbol)
+
+        paper_trade = PaperTradeModel(
+            timestamp=datetime.utcnow(),
+            symbol=request.symbol,
+            side=request.side,
+            quantity=request.quantity,
+            price=request.price,
+            crew_id=request.crew_id
+        )
+        db.add(paper_trade)
+        db.commit()
+        db.refresh(paper_trade)
+        db.close()
+        return PaperTradeResponse(
+            id=paper_trade.id,
+            timestamp=paper_trade.timestamp,
+            symbol=paper_trade.symbol,
+            side=paper_trade.side,
+            quantity=paper_trade.quantity,
+            price=paper_trade.price,
+            crew_id=paper_trade.crew_id
+        )
+
+    def get_all_trades(self, db):
+        """
+        Retrieve all paper trades.
+
+        Args:
+            db (Session): Database session.
+
+        Returns:
+            List[PaperTrade]: List of paper trades.
+        """
+        return db.query(PaperTradeModel).all()
+
+    def get_market_price(self, symbol: str) -> float:
+        """
+        Get the current market price for a symbol.
+
+        Args:
+            symbol (str): Trading pair symbol.
+
+        Returns:
+            float: Current market price.
+        """
+        # Implement fetching of the current price from Binance or a mocked value
+        return 100.0  # Placeholder value
+
+5.5.3 Data Sourcing Service (services/data_sourcing_service.py)
+
+(Unchanged from previous version)
+
+5.5.4 Performance Logging Service (services/performance_logging_service.py)
+
+(Unchanged from previous version)
+
+5.5.5 Management Service (services/management_service.py)
+
+(Unchanged from previous version)
+
+5.6 Utilities (utils/)
+
+(Unchanged from previous version)
+
+5.7 Database (database.py)
+
+(Unchanged from previous version)
+
+6. OpenAPI Schema (openapi.json)
+
+Note: The openapi.json file now includes endpoints for paper trading under the /paper-trading prefix. Below is the relevant section for paper trading endpoints.
+
+Paper Trading Endpoints
+
+"/paper-trading/execute": {
+  "post": {
+    "tags": ["Paper Trading"],
+    "summary": "Execute a paper trade (simulated trade) based on the specified parameters",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": { "$ref": "#/components/schemas/PaperTradeRequest" }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Paper trade executed successfully",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/PaperTradeResponse" }
+          }
+        }
+      },
+      "400": {
+        "description": "Invalid paper trade parameters"
+      }
+    }
+  }
+},
+"/paper-trading/trades": {
+  "get": {
+    "tags": ["Paper Trading"],
+    "summary": "Retrieve a list of all paper trades",
+    "responses": {
+      "200": {
+        "description": "List of paper trades",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/PaperTrade" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+Paper Trading Schemas
+
+"PaperTradeRequest": {
+  "type": "object",
+  "properties": {
+    "symbol": { "type": "string" },
+    "quantity": { "type": "number", "format": "float" },
+    "side": { "type": "string", "enum": ["BUY", "SELL"] },
+    "price": { "type": "number", "format": "float", "nullable": true },
+    "crew_id": { "type": "string" }
+  },
+  "required": ["symbol", "quantity", "side", "crew_id"]
+},
+"PaperTradeResponse": {
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer", "format": "int64" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "symbol": { "type": "string" },
+    "side": { "type": "string", "enum": ["BUY", "SELL"] },
+    "quantity": { "type": "number", "format": "float" },
+    "price": { "type": "number", "format": "float" },
+    "crew_id": { "type": "string" }
+  }
+},
+"PaperTrade": {
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer", "format": "int64" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "symbol": { "type": "string" },
+    "side": { "type": "string", "enum": ["BUY", "SELL"] },
+    "quantity": { "type": "number", "format": "float" },
+    "price": { "type": "number", "format": "float" },
+    "crew_id": { "type": "string" }
+  }
+}
+
+7. Conclusion
+
+This updated documentation incorporates paper trading features into the Automated Crypto Day Trading System. The paper trading functionality allows users to simulate trades without using real funds, enabling testing and validation of trading strategies in a risk-free environment.
+
+All application modules, routers, models, schemas, services, and utilities have been updated to include paper trading capabilities. The PaperTradingService and associated router and schemas handle the execution and retrieval of simulated trades. The OpenAPI schema (openapi.json) has been updated accordingly, ensuring comprehensive API documentation.
+
+This comprehensive documentation should serve as a solid foundation for developing, maintaining, and extending the FastAPI portion of the project, now with full support for paper trading.
+
+If you need further details or specific code snippets for any of the sections, please let me know, and I’ll be happy to provide them!

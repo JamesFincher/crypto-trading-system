@@ -1,0 +1,59 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="600" fill="#f8f9fa"/>
+    
+    <!-- Base Crew Template -->
+    <g transform="translate(50,50)">
+        <rect x="0" y="0" width="700" height="200" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+        <text x="20" y="30" font-size="18" fill="#1565c0" font-weight="bold">Base Crew Template</text>
+        
+        <!-- Components -->
+        <rect x="20" y="50" width="150" height="60" rx="5" fill="#2196f3" opacity="0.8"/>
+        <text x="95" y="85" font-size="14" fill="white" text-anchor="middle">Data Handler</text>
+        
+        <rect x="190" y="50" width="150" height="60" rx="5" fill="#2196f3" opacity="0.8"/>
+        <text x="265" y="85" font-size="14" fill="white" text-anchor="middle">Trade Executor</text>
+        
+        <rect x="360" y="50" width="150" height="60" rx="5" fill="#2196f3" opacity="0.8"/>
+        <text x="435" y="85" font-size="14" fill="white" text-anchor="middle">Risk Manager</text>
+        
+        <rect x="530" y="50" width="150" height="60" rx="5" fill="#2196f3" opacity="0.8"/>
+        <text x="605" y="85" font-size="14" fill="white" text-anchor="middle">Logger</text>
+        
+        <!-- Tools -->
+        <rect x="20" y="130" width="660" height="50" rx="5" fill="#1976d2" opacity="0.8"/>
+        <text x="350" y="160" font-size="14" fill="white" text-anchor="middle">Common Tools (API Clients, Utilities, Helpers)</text>
+    </g>
+    
+    <!-- Strategy Implementations -->
+    <g transform="translate(50,280)">
+        <text x="20" y="30" font-size="18" fill="#2e7d32" font-weight="bold">Strategy Implementations</text>
+        
+        <!-- Strategy 1 -->
+        <rect x="20" y="50" width="200" height="200" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+        <text x="120" y="80" font-size="16" fill="#2e7d32" text-anchor="middle">Momentum Strategy</text>
+        <rect x="40" y="100" width="160" height="130" rx="5" fill="#4caf50" opacity="0.8"/>
+        <text x="120" y="130" font-size="14" fill="white" text-anchor="middle">Custom Logic</text>
+        <text x="120" y="160" font-size="12" fill="white" text-anchor="middle">- Signal Generation</text>
+        <text x="120" y="180" font-size="12" fill="white" text-anchor="middle">- Entry/Exit Rules</text>
+        <text x="120" y="200" font-size="12" fill="white" text-anchor="middle">- Position Sizing</text>
+        
+        <!-- Strategy 2 -->
+        <rect x="240" y="50" width="200" height="200" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+        <text x="340" y="80" font-size="16" fill="#2e7d32" text-anchor="middle">Mean Reversion</text>
+        <rect x="260" y="100" width="160" height="130" rx="5" fill="#4caf50" opacity="0.8"/>
+        <text x="340" y="130" font-size="14" fill="white" text-anchor="middle">Custom Logic</text>
+        <text x="340" y="160" font-size="12" fill="white" text-anchor="middle">- Statistical Analysis</text>
+        <text x="340" y="180" font-size="12" fill="white" text-anchor="middle">- Deviation Measures</text>
+        <text x="340" y="200" font-size="12" fill="white" text-anchor="middle">- Recovery Patterns</text>
+        
+        <!-- Strategy 3 -->
+        <rect x="460" y="50" width="200" height="200" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+        <text x="560" y="80" font-size="16" fill="#2e7d32" text-anchor="middle">ML-Based Strategy</text>
+        <rect x="480" y="100" width="160" height="130" rx="5" fill="#4caf50" opacity="0.8"/>
+        <text x="560" y="130" font-size="14" fill="white" text-anchor="middle">Custom Logic</text>
+        <text x="560" y="160" font-size="12" fill="white" text-anchor="middle">- Feature Engineering</text>
+        <text x="560" y="180" font-size="12" fill="white" text-anchor="middle">- Model Predictions</text>
+        <text x="560" y="200" font-size="12" fill="white" text-anchor="middle">- Confidence Scores</text>
+    </g>
+</svg>
