@@ -35,7 +35,7 @@ def client(test_db):
             test_db.close()
     
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
+    with TestClient(app, base_url="http://localhost") as test_client:
         yield test_client
     app.dependency_overrides.clear()
 
@@ -56,7 +56,7 @@ def auth_headers(client, test_user):
         "username": "testuser",
         "password": "testpassword123"
     }
-    response = client.post("/auth/login", data=login_data)
+    response = client.post("/auth/login", json=login_data)
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

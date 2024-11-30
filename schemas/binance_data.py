@@ -6,7 +6,7 @@ class MarketData(BaseModel):
     """
     Schema for real-time market data.
     """
-    symbol: str = Field(..., description="Trading pair symbol (e.g., 'BTCUSDT')", regex="^[A-Z0-9]+$")
+    symbol: str = Field(..., description="Trading pair symbol (e.g., 'BTCUSDT')", pattern="^[A-Z0-9]+$")
     price: float = Field(..., description="Current price", gt=0)
     volume: float = Field(..., description="Trading volume in base currency", ge=0)
     timestamp: datetime = Field(..., description="Timestamp of the market data")
@@ -41,6 +41,6 @@ class HistoricalDataResponse(BaseModel):
     """
     Schema for historical data response.
     """
-    symbol: str = Field(..., description="Trading pair symbol")
-    interval: str = Field(..., description="Kline interval")
+    symbol: str = Field(..., description="Trading pair symbol", pattern="^[A-Z0-9]+$")
+    interval: str = Field(..., description="Kline interval", pattern="^[0-9]+[mhdwM]$")
     data: List[Kline] = Field(..., description="List of kline data")

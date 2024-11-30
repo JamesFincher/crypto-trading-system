@@ -9,6 +9,7 @@ def test_login_success(client):
         "email": "test@example.com"
     }
     response = client.post("/auth/register", json=register_data)
+    print("Register response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_201_CREATED
 
     # Then try to login
@@ -16,7 +17,8 @@ def test_login_success(client):
         "username": "testuser",
         "password": "testpassword123"
     }
-    response = client.post("/auth/login", data=login_data)
+    response = client.post("/auth/login", json=login_data)  # Changed from data to json
+    print("Login response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert "access_token" in data
@@ -28,7 +30,8 @@ def test_login_invalid_credentials(client):
         "username": "nonexistent",
         "password": "wrongpassword"
     }
-    response = client.post("/auth/login", data=login_data)
+    response = client.post("/auth/login", json=login_data)  # Changed from data to json
+    print("Invalid credentials response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == "Invalid credentials"
 
@@ -39,6 +42,7 @@ def test_register_success(client):
         "email": "new@example.com"
     }
     response = client.post("/auth/register", json=user_data)
+    print("Register response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["username"] == user_data["username"]
@@ -52,5 +56,6 @@ def test_register_duplicate_username(client, test_user):
         "email": "another@example.com"
     }
     response = client.post("/auth/register", json=user_data)
+    print("Duplicate username response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Username already registered" in response.json()["detail"]

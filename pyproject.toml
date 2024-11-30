@@ -13,7 +13,7 @@ uvicorn = "^0.24.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 sqlalchemy = "^2.0.23"
-pydantic = "^2.5.1"
+pydantic = {extras = ["email"], version = "^2.5.1"}
 python-multipart = "^0.0.6"
 python-dotenv = "^1.0.0"
 binance-connector = "^3.5.1"
@@ -22,6 +22,8 @@ numpy = "^1.26.2"
 httpx = "^0.25.2"
 python-dateutil = "^2.8.2"
 aiosqlite = "^0.19.0"
+email-validator = "^2.2.0"
+alembic = "^1.13.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

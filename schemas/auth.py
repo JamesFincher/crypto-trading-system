@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 class Token(BaseModel):
     """
@@ -34,6 +34,18 @@ class LoginRequest(BaseModel):
     username: str = Field(..., description="Username for authentication")
     password: str = Field(..., description="User's password")
 
+class LoginResponse(Token):
+    """
+    Schema for login response.
+    """
+    pass
+
+class ErrorResponse(BaseModel):
+    """
+    Schema for error response.
+    """
+    detail: str = Field(..., description="Error message")
+
 class User(UserBase):
     """
     Schema for user response.
@@ -42,5 +54,4 @@ class User(UserBase):
     is_active: bool = Field(..., description="Whether the user account is active")
     is_superuser: bool = Field(..., description="Whether the user has admin privileges")
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

@@ -42,7 +42,7 @@ app.add_middleware(
 # Add trusted host middleware
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+    allowed_hosts=["localhost", "testserver", "127.0.0.1"]
 )
 
 # Include routers
