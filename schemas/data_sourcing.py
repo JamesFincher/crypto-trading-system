@@ -18,22 +18,27 @@ class DataPoint(BaseModel):
     """
     Schema for a single market data point
     """
-    timestamp: str
-    open: float
-    high: float
-    low: float
-    close: float
+    timestamp: datetime
+    open: float = Field(..., alias="open_price")
+    high: float = Field(..., alias="high_price")
+    low: float = Field(..., alias="low_price")
+    close: float = Field(..., alias="close_price")
     volume: float
+    additional_data: Optional[Dict] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True
+    )
 
 
 class DataFetchResponse(BaseModel):
     """
     Response schema for fetched market data
+    Format: {symbol: {interval: [data_points]}}
     """
     crew_id: int
     status: str
-    data_points: Dict[str, Dict[str, List[DataPoint]]]  # symbol -> interval -> data points
+    data_points: Dict[str, Dict[str, List[DataPoint]]]
 
     model_config = ConfigDict(from_attributes=True)

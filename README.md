@@ -6,6 +6,10 @@ A robust API for managing automated crypto trading operations with Binance integ
 
 - User Authentication and Authorization
 - Real-time Binance Data Integration
+  - Historical market data fetching with customizable intervals
+  - OHLCV (Open, High, Low, Close, Volume) data storage
+  - Additional market metrics (quote volumes, trade counts)
+  - Automatic data persistence for analysis
 - Paper Trading Support
 - Performance Logging
 - Trading Crew Management
@@ -38,6 +42,26 @@ poetry install
 cp example.env .env
 ```
 Edit `.env` with your configuration values.
+
+### Environment Variables
+
+Required environment variables:
+
+```bash
+# Database
+DATABASE_URL=sqlite:///./crypto_trading.db
+
+# Authentication
+SECRET_KEY=your-secret-key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Binance API (Required for market data)
+BINANCE_API_KEY=your-binance-us-api-key
+BINANCE_API_SECRET=your-binance-us-api-secret
+```
+
+Note: This system uses the Binance.US API endpoint. Make sure to obtain API credentials from Binance.US if you're in the United States.
 
 ### Database Setup
 
@@ -99,6 +123,31 @@ poetry run uvicorn main:app --reload
 - `POST /data/source` - Add a new data source
 - `GET /logs` - Get trading logs
 - `POST /logs` - Create a new log entry
+
+### Market Data
+
+The system fetches and stores market data with the following features:
+
+- Customizable time intervals (1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d)
+- Historical data retrieval with specified date ranges
+- Automatic data persistence for each trading crew
+- Comprehensive market metrics including:
+  - OHLCV (Open, High, Low, Close, Volume)
+  - Quote asset volume
+  - Number of trades
+  - Taker buy volumes (base and quote)
+
+Example API usage:
+
+```python
+# Fetch market data for a trading crew
+response = client.post("/data-sourcing/fetch", json={
+    "crew_id": 1,
+    "start_time": 1625097600000,  # Unix timestamp in milliseconds
+    "end_time": 1625184000000,
+    "intervals": ["1h", "4h"]
+})
+```
 
 ## Testing
 

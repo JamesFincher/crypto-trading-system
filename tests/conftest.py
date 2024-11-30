@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+import urllib.parse
 
 from main import app
 from database import Base, get_db
@@ -56,7 +57,11 @@ def auth_headers(client, test_user):
         "username": "testuser",
         "password": "testpassword123"
     }
-    response = client.post("/auth/login", json=login_data)
+    response = client.post(
+        "/auth/login",
+        data=urllib.parse.urlencode(login_data),
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}

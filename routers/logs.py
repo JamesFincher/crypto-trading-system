@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict
 from datetime import datetime
 
 from database import get_db
+from models.user import User
 from models.performance_log import PerformanceLog
-from schemas.logs import LogResponse, MetricsRequest
+from schemas.logs import LogResponse, MetricsResponse
+from services.logs_service import LogsService
+from utils.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -14,7 +17,8 @@ async def get_performance_logs(
     crew_id: int = None,
     start_date: datetime = None,
     end_date: datetime = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Get performance logs with optional filtering.
@@ -24,11 +28,37 @@ async def get_performance_logs(
     - start_date: Optional start date for log filtering
     - end_date: Optional end date for log filtering
     - db: Database session
+    - current_user: Currently authenticated user
 
     Returns:
     - List[LogResponse]: List of performance logs
     """
-    pass  # TODO: Implement log retrieval logic
+    service = LogsService(db)
+    return service.get_performance_logs(crew_id, start_date, end_date)
+
+@router.get("/performance/{crew_id}/metrics", response_model=MetricsResponse)
+async def get_trading_metrics(
+    crew_id: int,
+    start_date: datetime = None,
+    end_date: datetime = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get specific trading metrics.
+
+    Parameters:
+    - crew_id: Trading crew ID
+    - start_date: Optional start date for metrics calculation
+    - end_date: Optional end date for metrics calculation
+    - db: Database session
+    - current_user: Currently authenticated user
+
+    Returns:
+    - MetricsResponse: Trading metrics data
+    """
+    service = LogsService(db)
+    return service.get_trading_metrics(crew_id, start_date, end_date)
 
 @router.get("/errors", response_model=List[LogResponse])
 async def get_error_logs(
@@ -50,20 +80,3 @@ async def get_error_logs(
     - List[LogResponse]: List of error logs
     """
     pass  # TODO: Implement error log retrieval logic
-
-@router.post("/metrics", response_model=Dict[str, float])
-async def get_trading_metrics(
-    request: MetricsRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Get specific trading metrics.
-
-    Parameters:
-    - request: Metrics request containing crew_id, metric_type, and timeframe
-    - db: Database session
-
-    Returns:
-    - Dict[str, float]: Trading metrics data
-    """
-    pass  # TODO: Implement metrics calculation logic

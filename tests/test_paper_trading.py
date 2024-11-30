@@ -1,31 +1,37 @@
 import pytest
 from fastapi import status
+from datetime import datetime, timedelta
 
 def test_create_paper_trading_session(client, auth_headers):
     session_data = {
         "name": "Test Paper Trading",
-        "initial_balance": 10000.0,
+        "strategy_config": {"type": "MACD_RSI", "parameters": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
         "trading_pairs": ["BTCUSDT", "ETHUSDT"],
-        "strategy": "MACD_RSI",
-        "risk_level": "medium"
+        "risk_percentage": 2.0,
+        "initial_balance": 10000.0,
+        "max_position_size": 500.0
     }
     response = client.post("/paper-trading/sessions", json=session_data, headers=auth_headers)
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["name"] == session_data["name"]
+    assert data["trading_pairs"] == session_data["trading_pairs"]
+    assert data["strategy_config"] == session_data["strategy_config"]
+    assert data["risk_percentage"] == session_data["risk_percentage"]
     assert data["initial_balance"] == session_data["initial_balance"]
-    assert data["current_balance"] == session_data["initial_balance"]
+    assert data["max_position_size"] == session_data["max_position_size"]
     assert "id" in data
-    assert "created_at" in data
+    assert "user_id" in data
 
 def test_get_paper_trading_sessions(client, auth_headers):
     # First create a session
     session_data = {
         "name": "Test Session",
-        "initial_balance": 10000.0,
+        "strategy_config": {"type": "MACD_RSI", "parameters": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
         "trading_pairs": ["BTCUSDT"],
-        "strategy": "MACD_RSI",
-        "risk_level": "low"
+        "risk_percentage": 2.0,
+        "initial_balance": 10000.0,
+        "max_position_size": 500.0
     }
     client.post("/paper-trading/sessions", json=session_data, headers=auth_headers)
 
@@ -35,48 +41,58 @@ def test_get_paper_trading_sessions(client, auth_headers):
     data = response.json()
     assert isinstance(data, list)
     assert len(data) > 0
-    assert data[0]["name"] == session_data["name"]
+    session = data[0]
+    assert session["name"] == session_data["name"]
+    assert session["trading_pairs"] == session_data["trading_pairs"]
+    assert session["strategy_config"] == session_data["strategy_config"]
+    assert session["risk_percentage"] == session_data["risk_percentage"]
+    assert session["initial_balance"] == session_data["initial_balance"]
+    assert session["max_position_size"] == session_data["max_position_size"]
+    assert "id" in session
+    assert "user_id" in session
 
 def test_get_paper_trading_session_performance(client, auth_headers):
     # First create a session
     session_data = {
         "name": "Test Session",
-        "initial_balance": 10000.0,
+        "strategy_config": {"type": "MACD_RSI", "parameters": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
         "trading_pairs": ["BTCUSDT"],
-        "strategy": "MACD_RSI",
-        "risk_level": "low"
+        "risk_percentage": 2.0,
+        "initial_balance": 10000.0,
+        "max_position_size": 500.0
     }
     create_response = client.post("/paper-trading/sessions", json=session_data, headers=auth_headers)
     session_id = create_response.json()["id"]
 
-    # Then get its performance
+    # Get performance data
     response = client.get(f"/paper-trading/sessions/{session_id}/performance", headers=auth_headers)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert "total_trades" in data
     assert "win_rate" in data
-    assert "profit_loss" in data
+    assert "average_profit" in data
+    assert "total_profit" in data
     assert "current_balance" in data
-    assert "roi" in data
 
 def test_execute_paper_trade(client, auth_headers):
     # First create a session
     session_data = {
         "name": "Test Session",
-        "initial_balance": 10000.0,
+        "strategy_config": {"type": "MACD_RSI", "parameters": {"fast_period": 12, "slow_period": 26, "signal_period": 9}},
         "trading_pairs": ["BTCUSDT"],
-        "strategy": "MACD_RSI",
-        "risk_level": "low"
+        "risk_percentage": 2.0,
+        "initial_balance": 10000.0,
+        "max_position_size": 500.0
     }
     create_response = client.post("/paper-trading/sessions", json=session_data, headers=auth_headers)
     session_id = create_response.json()["id"]
 
-    # Then execute a trade
+    # Execute a trade
     trade_data = {
         "symbol": "BTCUSDT",
         "side": "BUY",
         "quantity": 0.1,
-        "price": 30000.0
+        "price": 50000.0
     }
     response = client.post(
         f"/paper-trading/sessions/{session_id}/trades",
@@ -91,4 +107,4 @@ def test_execute_paper_trade(client, auth_headers):
     assert data["price"] == trade_data["price"]
     assert "id" in data
     assert "timestamp" in data
-    assert "total_value" in data
+    assert "status" in data

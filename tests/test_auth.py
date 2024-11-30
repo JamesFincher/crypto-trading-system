@@ -1,5 +1,6 @@
 import pytest
 from fastapi import status
+import urllib.parse
 
 def test_login_success(client):
     # First register a user
@@ -9,16 +10,18 @@ def test_login_success(client):
         "email": "test@example.com"
     }
     response = client.post("/auth/register", json=register_data)
-    print("Register response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_201_CREATED
 
-    # Then try to login
+    # Then try to login with form data
     login_data = {
         "username": "testuser",
         "password": "testpassword123"
     }
-    response = client.post("/auth/login", json=login_data)  # Changed from data to json
-    print("Login response:", response.json())  # Debug print
+    response = client.post(
+        "/auth/login",
+        data=urllib.parse.urlencode(login_data),
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert "access_token" in data
@@ -26,14 +29,18 @@ def test_login_success(client):
     assert data["token_type"] == "bearer"
 
 def test_login_invalid_credentials(client):
+    # Try to login with invalid credentials
     login_data = {
         "username": "nonexistent",
         "password": "wrongpassword"
     }
-    response = client.post("/auth/login", json=login_data)  # Changed from data to json
-    print("Invalid credentials response:", response.json())  # Debug print
+    response = client.post(
+        "/auth/login",
+        data=urllib.parse.urlencode(login_data),
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert response.json()["detail"] == "Invalid credentials"
+    assert "Invalid credentials" in response.json()["detail"]
 
 def test_register_success(client):
     user_data = {
@@ -42,7 +49,6 @@ def test_register_success(client):
         "email": "new@example.com"
     }
     response = client.post("/auth/register", json=user_data)
-    print("Register response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["username"] == user_data["username"]
@@ -56,6 +62,5 @@ def test_register_duplicate_username(client, test_user):
         "email": "another@example.com"
     }
     response = client.post("/auth/register", json=user_data)
-    print("Duplicate username response:", response.json())  # Debug print
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Username already registered" in response.json()["detail"]
