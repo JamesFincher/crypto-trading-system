@@ -3,32 +3,25 @@ from typing import Dict, Optional
 from datetime import datetime
 
 class LogBase(BaseModel):
-    trading_crew_id: int
+    crew_id: int
     timestamp: datetime
-    log_type: str
+    profit: float
     message: str
 
 class LogCreate(LogBase):
-    metrics: Dict = {}
-    pnl: Optional[float] = None
-    win_rate: Optional[float] = None
-    sharpe_ratio: Optional[float] = None
-    max_drawdown: Optional[float] = None
+    pass
 
 class LogResponse(LogBase):
     id: int
-    metrics: Dict
-    pnl: Optional[float] = None
-    win_rate: Optional[float] = None
-    sharpe_ratio: Optional[float] = None
-    max_drawdown: Optional[float] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-class MetricsRequest(BaseModel):
-    crew_id: int
-    metric_type: str  # e.g., "performance", "risk", "execution"
-    timeframe: str  # e.g., "1d", "1w", "1m"
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+class MetricsResponse(BaseModel):
+    profit: float
+    win_rate: float
+    max_drawdown: float
+    sharpe_ratio: float
+
+    class Config:
+        from_attributes = True
